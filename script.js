@@ -1,3 +1,22 @@
+// Loading Screen
+window.addEventListener('load', () => {
+    const loadingScreen = document.getElementById('loading-screen');
+    
+    // Minimum loading time of 2 seconds for better UX
+    setTimeout(() => {
+        loadingScreen.classList.add('fade-out');
+        
+        // Remove loading screen from DOM after fade out
+        setTimeout(() => {
+            loadingScreen.remove();
+            document.body.style.overflow = 'auto';
+        }, 500);
+    }, 2000);
+});
+
+// Prevent scrolling while loading
+document.body.style.overflow = 'hidden';
+
 // Mobile Navigation Toggle
 const hamburger = document.querySelector('.hamburger');
 const navMenu = document.querySelector('.nav-menu');
@@ -133,13 +152,16 @@ function typeWriter(element, text, speed = 100) {
 }
 
 // Initialize typing animation when page loads
-window.addEventListener('load', () => {
+window.addEventListener('DOMContentLoaded', () => {
     const heroTitle = document.querySelector('.hero-title');
     if (heroTitle) {
         const originalText = heroTitle.innerHTML;
+        // Start typing animation after loading screen
         setTimeout(() => {
-            typeWriter(heroTitle, originalText.replace(/<[^>]*>/g, ''), 50);
-        }, 1000);
+            if (!document.getElementById('loading-screen')) {
+                typeWriter(heroTitle, originalText.replace(/<[^>]*>/g, ''), 50);
+            }
+        }, 3000);
     }
 });
 
@@ -189,12 +211,17 @@ const statsObserver = new IntersectionObserver((entries) => {
         if (entry.isIntersecting) {
             const statNumbers = entry.target.querySelectorAll('.stat-number');
             statNumbers.forEach(stat => {
-                const target = parseInt(stat.textContent.replace(/\D/g, ''));
-                const suffix = stat.textContent.replace(/\d/g, '');
-                animateCounter(stat, target);
-                setTimeout(() => {
-                    stat.textContent += suffix;
-                }, 2000);
+                const originalText = stat.textContent;
+                const target = parseInt(originalText.replace(/\D/g, ''));
+                const suffix = originalText.replace(/[\d+]/g, '');
+                
+                if (target > 0) {
+                    stat.textContent = '0';
+                    animateCounter(stat, target);
+                    setTimeout(() => {
+                        stat.textContent = originalText;
+                    }, 2000);
+                }
             });
             statsObserver.unobserve(entry.target);
         }
@@ -204,4 +231,102 @@ const statsObserver = new IntersectionObserver((entries) => {
 const heroStats = document.querySelector('.hero-stats');
 if (heroStats) {
     statsObserver.observe(heroStats);
+}
+
+// Enhanced form validation
+function validateEmail(email) {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+}
+
+function validateForm(formData) {
+    const name = formData.get('name').trim();
+    const email = formData.get('email').trim();
+    const service = formData.get('service');
+    const message = formData.get('message').trim();
+    
+    if (!name || name.length < 2) {
+        return 'Please enter a valid name (at least 2 characters)';
+    }
+    
+    if (!email || !validateEmail(email)) {
+        return 'Please enter a valid email address';
+    }
+    
+    if (!service) {
+        return 'Please select a service';
+    }
+    
+    if (!message || message.length < 10) {
+        return 'Please enter a message (at least 10 characters)';
+    }
+    
+    return null;
+}
+
+// Update contact form handling with better validation
+const contactForm = document.querySelector('.contact-form');
+if (contactForm) {
+    contactForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const validationError = validateForm(formData);
+        
+        if (validationError) {
+            alert(validationError);
+            return;
+        }
+        
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
+        
+        submitBtn.textContent = 'Sending...';
+        submitBtn.disabled = true;
+        
+        // Simulate form submission
+        setTimeout(() => {
+            alert('Thank you for your message! I\'ll get back to you within 24 hours.');
+            this.reset();
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+        }, 2000);
+    });
+}
+
+// Add error handling for images
+document.querySelectorAll('img').forEach(img => {
+    img.addEventListener('error', function() {
+        this.style.display = 'none';
+        console.warn('Image failed to load:', this.src);
+    });
+});
+
+// Accessibility improvements
+document.addEventListener('keydown', function(e) {
+    // Close mobile menu with Escape key
+    if (e.key === 'Escape' && navMenu.classList.contains('active')) {
+        hamburger.classList.remove('active');
+        navMenu.classList.remove('active');
+    }
+});
+
+// Performance optimization - lazy load images
+if ('IntersectionObserver' in window) {
+    const imageObserver = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const img = entry.target;
+                if (img.dataset.src) {
+                    img.src = img.dataset.src;
+                    img.removeAttribute('data-src');
+                }
+                observer.unobserve(img);
+            }
+        });
+    });
+    
+    document.querySelectorAll('img[data-src]').forEach(img => {
+        imageObserver.observe(img);
+    });
 }
